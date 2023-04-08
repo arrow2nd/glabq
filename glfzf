@@ -62,7 +62,7 @@ function search {
 }
 
 case "$1" in
-  -h | --help)
+  "" | -h | --help)
     show_help
     exit 0;;
   user | group)
