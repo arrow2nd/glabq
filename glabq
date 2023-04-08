@@ -50,8 +50,26 @@ function search {
     exit 1
   fi
 
-  # API を叩いて結果を fzf で絞り込む
-  path=$(curl -s "$base_url/api/v4/$type/$user_or_group_id/projects" | jq -r ".[].path_with_namespace" | fzf)
+  local page=1
+  local repos=()
+
+  # 全てのリポジトリを取得
+  while true; do
+    local url="$base_url/api/v4/$type/$user_or_group_id/projects?page=$page&per_page=100" 
+    local new_repos=$(curl -s "$url" | jq -r ".[].path_with_namespace")
+
+    repos=("$repos" "$new_repos")
+
+    # 取得件数が 100 件未満なら終了
+    if [ ${#new_repos[@]} -lt 100 ]; then
+      break
+    fi
+
+    page=$((page+1))
+  done
+
+  # fzf で絞り込む
+  path=$(printf '%s\n' "${repos[@]}" | fzf)
 
   # ghq でクローン
   if [ -n "$GLABQ_USE_HTTPS" ]; then
