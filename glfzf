@@ -1,0 +1,74 @@
+#!/bin/bash
+set -e
+
+# 必要なコマンドがあるか確認
+require_commands=("fzf" "jq" "curl" "ghq")
+for cmd in "${require_commands[@]}"; do
+  if ! type -p "$cmd" >/dev/null; then
+    echo "error: $cmd not found on the system" >&2
+    exit 1
+  fi
+done
+
+host=${GLABQ_GITLAB_HOST:-gitlab.com}
+base_url="https://$host"
+
+function show_help {
+  cat << EOS
+Clone GitLab repositories using fzf and ghq.
+
+USAGE:
+  glabq [command] [user or group id]
+
+COMMANDS:
+  user     Search user-owned repositories
+  group    Search group-owned repositories
+
+FLAGS:
+  --help   Show this help
+
+ENVIRONMENT VARIABLE:
+  GLABQ_GITLAB_HOST     GitLab host name (default: gitlab.com)
+  GLABQ_USE_HTTPS       Use HTTPS for Clone (default: false)
+  GLABQ_DEFAULT_USER    ID to be used when userid is omitted
+  GLABQ_DEFAULT_GROUP   ID to be used when groupid is omitted
+
+EXAMPLES:
+  glabq user arrow2nd
+  glabq group gitlab-org
+EOS
+}
+
+function search {
+  type="${1}s"
+
+  local default_var_name="GLABQ_DEFAULT_$(echo "$type" | tr 'a-z' 'A-Z')"
+  user_or_group_id=${2:-${!default_var_name}}
+
+  if [ -z "$user_or_group_id" ]; then
+    echo "error: Search target not specified"
+    exit 1
+  fi
+
+  # API を叩いて結果を fzf で絞り込む
+  path=$(curl -s "$base_url/api/v4/$type/$user_or_group_id/projects" | jq -r ".[].path_with_namespace" | fzf)
+
+  # ghq でクローン
+  if [ -n "$GLABQ_USE_HTTPS" ]; then
+    ghq get "https://$host/$path.git"
+  else
+    ghq get "git@$host:$path.git"
+  fi
+}
+
+case "$1" in
+  -h | --help)
+    show_help
+    exit 0;;
+  user | group)
+    search "$1" "$2"
+    exit 0;;
+  *)
+    echo "error: Unknown command ($1)" >&2
+    exit 1;;
+esac
