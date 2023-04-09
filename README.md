@@ -10,7 +10,7 @@ Clone GitLab repositories using fzf and ghq.
 
 ## Usage
 
-```sh
+```
 $ glabq --help
 
 Clone GitLab repositories using fzf and ghq.
