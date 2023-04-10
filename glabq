@@ -71,7 +71,7 @@ function search {
   done
 
   # fzf で絞り込む
-  path=$(printf '%s\n' "${repos[@]}" | fzf)
+  path=$(printf '%s\n' "${repos[@]}" | grep -v '^$' | fzf)
 
   # ghq でクローン
   if [ -n "$GLABQ_USE_HTTPS" ]; then
