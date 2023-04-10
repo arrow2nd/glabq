@@ -12,6 +12,7 @@ done
 
 host=${GLABQ_GITLAB_HOST:-gitlab.com}
 base_url="https://$host"
+authorization=${GLABQ_PRIVATE_KEY:+"Authorization: Bearer $GLABQ_PRIVATE_KEY"}
 
 function show_help {
   cat << EOS
@@ -30,6 +31,7 @@ FLAGS:
 ENVIRONMENT VARIABLE:
   GLABQ_GITLAB_HOST     GitLab host name (default: gitlab.com)
   GLABQ_USE_HTTPS       Use HTTPS for Clone (default: false)
+  GLABQ_PRIVATE_KEY     Access token with scope read_api (may not be required)
   GLABQ_DEFAULT_USER    ID to be used when userid is omitted
   GLABQ_DEFAULT_GROUP   ID to be used when groupid is omitted
 
@@ -55,8 +57,8 @@ function search {
 
   # 全てのリポジトリを取得
   while true; do
-    local url="$base_url/api/v4/$type/$user_or_group_id/projects?page=$page&per_page=100" 
-    local new_repos=$(curl -s "$url" | jq -r ".[].path_with_namespace")
+    local url="$base_url/api/v4/$type/$user_or_group_id/projects?page=$page&per_page=100"
+    local new_repos=$(curl -H "$authorization" -s "$url" | jq -r ".[].path_with_namespace")
 
     repos=("$repos" "$new_repos")
 
